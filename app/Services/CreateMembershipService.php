@@ -9,6 +9,7 @@ use App\Models\Payment;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class CreateMembershipService
 {
@@ -66,6 +67,31 @@ class CreateMembershipService
         'notes' => $data['notes'] ?? null,
         'recorded_by' => Auth::id(),
       ]);
+
+      // Deteksi membership pertama
+      $isFirstMembership = $member->memberships()->count() === 1;
+
+      if ($isFirstMembership && !empty($member->whatsapp)) {
+        try {
+          $relativePath = app(MemberCardService::class)->generate($member);
+          $fullPath = storage_path('app/public/' . $relativePath);
+
+          $pesan = "Halo *{$member->name}*!\n\n"
+            . "Selamat bergabung sebagai member.\n"
+            . "Kode member: *{$member->member_code}*\n\n"
+            . "Tunjukkan barcode pada kartu ini saat check-in di gym.";
+
+          app(WhatsAppGatewayService::class)->kirimPesanDenganGambar(
+            $pesan,
+            $fullPath,
+            $member->whatsapp
+          );
+        } catch (\Throwable $e) {
+          Log::error('Gagal kirim member card via WA Gateway: ' . $e->getMessage(), [
+            'member_id' => $member->id,
+          ]);
+        }
+      }
 
       return $membership->load(['plan', 'payment', 'referral']);
     });

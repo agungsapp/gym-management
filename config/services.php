@@ -14,6 +14,17 @@ return [
     |
     */
 
+    'fonnte' => [
+        'url' => env('FONNTE_URL', 'https://api.fonnte.com/send'),
+        'token' => env('FONNTE_TOKEN'),
+        'target' => env('FONNTE_TARGET'), // opsional, default group/admin
+    ],
+
+    'wa_gateway' => [
+        'url' => env('WA_GATEWAY_URL', 'http://127.0.0.1:8080'),
+        'api_key' => env('WA_GATEWAY_API_KEY'), // null kalau tidak dipakai
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],
