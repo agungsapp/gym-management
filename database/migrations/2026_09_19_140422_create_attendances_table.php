@@ -17,8 +17,13 @@ return new class extends Migration
             $table->foreignId('membership_id')->nullable()->constrained()->nullOnDelete();
             $table->timestamp('check_in_at');
             $table->enum('method', ['manual', 'barcode'])->default('manual');
+            $table->string('status')->default('verified');
             $table->foreignId('operator_id')->nullable()->constrained('users')->nullOnDelete();
             $table->text('notes')->nullable();
+            $table->timestamp('cancelled_at')->nullable();
+            $table->foreignId('cancelled_by')->nullable()
+                ->constrained('users')->nullOnDelete();
+            $table->string('cancel_reason')->nullable();
             $table->timestamps();
 
             $table->index(['member_id', 'check_in_at']);

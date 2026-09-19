@@ -10,10 +10,9 @@ use Illuminate\Validation\ValidationException;
 
 class CheckInService
 {
-  /** Interval anti-duplikat (menit) */
   public const DUPLICATE_INTERVAL_MINUTES = 5;
 
-  public function handle(string $memberCode, string $method = 'manual'): array
+  public function handle(string $memberCode, string $method = 'manual', bool $allowGrace = false): array
   {
     $member = Member::where('member_code', strtoupper(trim($memberCode)))->first();
 
@@ -31,17 +30,25 @@ class CheckInService
 
     $membership = $this->findActiveMembership($member);
 
+    // Membership tidak aktif
     if (!$membership) {
-      return [
-        'success' => false,
-        'reason' => 'expired',
-        'member' => $member,
-        'message' => 'Membership telah expired. Silakan melakukan renewal.',
-      ];
+      if (!$allowGrace) {
+        return [
+          'success' => false,
+          'reason' => 'expired',
+          'needs_grace_confirmation' => true,
+          'member' => $member->only(['id', 'name', 'member_code', 'photo', 'type']),
+          'message' => 'Membership telah expired. Izinkan masuk (toleransi)?',
+        ];
+      }
+
+      // Operator izinkan toleransi
+      return $this->createAttendance($member, null, $method, 'grace');
     }
 
-    // Cek duplikat
+    // Cek duplikat (abaikan yang cancelled)
     $recent = Attendance::where('member_id', $member->id)
+      ->whereIn('status', ['verified', 'grace'])
       ->where('check_in_at', '>=', now()->subMinutes(self::DUPLICATE_INTERVAL_MINUTES))
       ->exists();
 
@@ -49,26 +56,71 @@ class CheckInService
       return [
         'success' => false,
         'reason' => 'duplicate',
-        'member' => $member,
+        'needs_grace_confirmation' => false,
+        'member' => $member->only(['id', 'name', 'member_code', 'photo', 'type']),
         'membership' => $membership->load('plan'),
         'message' => 'Baru saja check-in dalam ' . self::DUPLICATE_INTERVAL_MINUTES . ' menit terakhir.',
       ];
     }
 
+    return $this->createAttendance($member, $membership, $method, 'verified');
+  }
+
+  public function cancel(Attendance $attendance, ?string $reason = null): array
+  {
+    if ($attendance->status === 'cancelled') {
+      return [
+        'success' => false,
+        'message' => 'Check-in ini sudah dibatalkan.',
+      ];
+    }
+
+    if (!$attendance->isCancellable()) {
+      return [
+        'success' => false,
+        'message' => 'Batas waktu pembatalan (1 hari) sudah lewat.',
+      ];
+    }
+
+    $attendance->update([
+      'status' => 'cancelled',
+      'cancelled_at' => now(),
+      'cancelled_by' => Auth::id(),
+      'cancel_reason' => $reason,
+    ]);
+
+    return [
+      'success' => true,
+      'message' => 'Check-in berhasil dibatalkan.',
+      'attendance' => $attendance->fresh(),
+    ];
+  }
+
+  private function createAttendance(
+    Member $member,
+    ?Membership $membership,
+    string $method,
+    string $status
+  ): array {
     $attendance = Attendance::create([
       'member_id' => $member->id,
-      'membership_id' => $membership->id,
+      'membership_id' => $membership?->id,
       'check_in_at' => now(),
       'method' => $method,
+      'status' => $status,
       'operator_id' => Auth::id(),
     ]);
 
     return [
       'success' => true,
-      'member' => $member,
-      'membership' => $membership->load('plan'),
+      'reason' => $status === 'grace' ? 'grace' : 'ok',
+      'needs_grace_confirmation' => false,
+      'member' => $member->only(['id', 'name', 'member_code', 'photo', 'type']),
+      'membership' => $membership?->load('plan'),
       'attendance' => $attendance,
-      'message' => 'Check-in berhasil.',
+      'message' => $status === 'grace'
+        ? 'Check-in toleransi (membership expired) berhasil.'
+        : 'Check-in berhasil.',
     ];
   }
 

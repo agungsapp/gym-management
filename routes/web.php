@@ -42,6 +42,7 @@ Route::middleware('auth')->group(function () {
 
   Route::get('/check-in', [CheckInController::class, 'index'])->name('check-in.index');
   Route::post('/check-in', [CheckInController::class, 'store'])->name('check-in.store');
+  Route::post('/check-in/{attendance}/cancel', [CheckInController::class, 'cancel'])->name('check-in.cancel');
 });
 
 require __DIR__ . '/auth.php';

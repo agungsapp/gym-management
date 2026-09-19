@@ -13,16 +13,7 @@ class CheckInController extends Controller
 {
     public function index()
     {
-        $todayAttendances = Attendance::with(['member', 'operator'])
-            ->whereDate('check_in_at', today())
-            ->latest('check_in_at')
-            ->limit(50)
-            ->get();
-
-        return Inertia::render('CheckIn/Index', [
-            'todayAttendances' => $todayAttendances,
-            'todayCount' => Attendance::whereDate('check_in_at', today())->count(),
-        ]);
+        return Inertia::render('CheckIn/Index', $this->pageData());
     }
 
     public function store(Request $request, CheckInService $service)
@@ -30,42 +21,60 @@ class CheckInController extends Controller
         $validated = $request->validate([
             'member_code' => 'required|string|max:30',
             'method' => 'nullable|in:manual,barcode',
+            'allow_grace' => 'nullable|boolean',
         ]);
 
         $result = null;
-        $errors = null;
+        $errorBag = null;
 
         try {
             $result = $service->handle(
                 $validated['member_code'],
-                $validated['method'] ?? 'manual'
+                $validated['method'] ?? 'manual',
+                (bool) ($validated['allow_grace'] ?? false)
             );
         } catch (ValidationException $e) {
-            $errors = $e->errors();
+            $errorBag = $e->errors();
         }
 
-        $todayAttendances = Attendance::with(['member', 'operator'])
-            ->whereDate('check_in_at', today())
-            ->latest('check_in_at')
-            ->limit(50)
-            ->get();
-
-        return Inertia::render('CheckIn/Index', [
-            'todayAttendances' => $todayAttendances,
-            'todayCount' => Attendance::whereDate('check_in_at', today())->count(),
+        return Inertia::render('CheckIn/Index', array_merge($this->pageData(), [
             'result' => $result,
-            'errors' => $errors,
-        ]);
+            'errors' => $errorBag,
+        ]));
     }
 
-    public function storeFromMember(Member $member, CheckInService $service)
+    public function cancel(Request $request, Attendance $attendance, CheckInService $service)
     {
+        $validated = $request->validate([
+            'reason' => 'nullable|string|max:255',
+        ]);
+
+        $result = $service->cancel($attendance, $validated['reason'] ?? null);
+
+        return back()->with(
+            $result['success'] ? 'success' : 'error',
+            $result['message']
+        );
+    }
+
+    public function storeFromMember(Request $request, Member $member, CheckInService $service)
+    {
+        $allowGrace = (bool) $request->boolean('allow_grace');
+
         try {
-            $result = $service->handle($member->member_code, 'manual');
+            $result = $service->handle($member->member_code, 'manual', $allowGrace);
         } catch (ValidationException $e) {
             return redirect()
                 ->route('members.show', $member)
                 ->withErrors($e->errors());
+        }
+
+        // Expired → minta konfirmasi di halaman show (opsional nanti)
+        if (!$result['success'] && ($result['needs_grace_confirmation'] ?? false)) {
+            return redirect()
+                ->route('members.show', $member)
+                ->with('error', $result['message'])
+                ->with('checkin_result', $result);
         }
 
         $flashKey = $result['success'] ? 'success' : 'error';
@@ -75,5 +84,23 @@ class CheckInController extends Controller
             ->route('members.show', $member)
             ->with($flashKey, $message)
             ->with('checkin_result', $result);
+    }
+
+    private function pageData(): array
+    {
+        $todayAttendances = Attendance::with(['member', 'operator'])
+            ->whereDate('check_in_at', today())
+            ->latest('check_in_at')
+            ->limit(50)
+            ->get();
+
+        $todayCount = Attendance::whereDate('check_in_at', today())
+            ->whereIn('status', ['verified', 'grace'])
+            ->count();
+
+        return [
+            'todayAttendances' => $todayAttendances,
+            'todayCount' => $todayCount,
+        ];
     }
 }
