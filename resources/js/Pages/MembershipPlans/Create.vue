@@ -1,18 +1,29 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, useForm, Link } from '@inertiajs/vue3';
+import Swal from 'sweetalert2';
 
 const form = useForm({
   name: '',
-  duration: 30,
+  duration: null,
   duration_unit: 'days',
-  price: 150000,
+  price: null,
   description: '',
   is_active: true,
 });
 
 const submit = () => {
-  form.post(route('membership-plans.store'));
+  form.post(route('membership-plans.store'), {
+    onSuccess: () => {
+      Swal.fire({
+        title: 'Berhasil!',
+        text: 'Paket membership berhasil ditambahkan.',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    },
+  });
 };
 </script>
 
@@ -36,12 +47,12 @@ const submit = () => {
         </div>
 
         <!-- Durasi -->
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-2  gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700">Durasi</label>
             <input v-model="form.duration" type="number" min="1"
               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              required />
+              required placeholder="Misal: 30" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700">Satuan</label>
@@ -58,7 +69,7 @@ const submit = () => {
           <label class="block text-sm font-medium text-gray-700">Harga (Rp)</label>
           <input v-model="form.price" type="number" min="0"
             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            required />
+            required placeholder="Misal: 100000" />
           <div v-if="form.errors.price" class="text-red-600 text-sm mt-1">{{ form.errors.price }}</div>
         </div>
 
@@ -66,7 +77,8 @@ const submit = () => {
         <div>
           <label class="block text-sm font-medium text-gray-700">Deskripsi (opsional)</label>
           <textarea v-model="form.description" rows="3"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            placeholder="Deskripsi paket membership"></textarea>
         </div>
 
         <!-- Status -->

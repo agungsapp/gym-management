@@ -1,4 +1,8 @@
 <script setup>
+import ActiveIcon from '@/Components/Icons/ActiveIcon.vue';
+import BanIcon from '@/Components/Icons/BanIcon.vue';
+import EditIcon from '@/Components/Icons/EditIcon.vue';
+import InactiveIcon from '@/Components/Icons/InactiveIcon.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
@@ -43,12 +47,15 @@ const destroy = (id) => {
     <template #header>
       <h2 class="text-xl font-semibold text-gray-800">Paket Membership</h2>
     </template>
-    <div class="flex items-center justify-between">
-      <Link :href="route('membership-plans.create')"
-        class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700">
-        + Tambah Paket
-      </Link>
-    </div>
+
+    <template #headnav>
+      <div class="flex items-center justify-between">
+        <Link :href="route('membership-plans.create')"
+          class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700">
+          + Tambah Paket
+        </Link>
+      </div>
+    </template>
 
     <div class="bg-white overflow-hidden shadow-sm sm:rounded-xl">
       <div class="p-6">
@@ -88,6 +95,8 @@ const destroy = (id) => {
                     ? 'bg-green-100 text-green-800'
                     : 'bg-gray-100 text-gray-600'"
                     class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full">
+                    <ActiveIcon class="me-1" v-if="plan.is_active" />
+                    <InactiveIcon class="me-1" v-else />
                     {{ plan.is_active ? 'Aktif' : 'Nonaktif' }}
                   </span>
                 </td>
@@ -95,21 +104,13 @@ const destroy = (id) => {
                   <div class="flex items-center justify-end gap-2">
                     <Link :href="route('membership-plans.edit', plan.id)"
                       class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 transition">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
+                      <EditIcon />
                       Edit
                     </Link>
 
                     <button v-if="plan.is_active" @click="destroy(plan.id)"
                       class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 rounded-md hover:bg-red-100 transition">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                      </svg>
+                      <BanIcon />
                       Nonaktifkan
                     </button>
                   </div>

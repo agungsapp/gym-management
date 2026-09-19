@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\MemberController;
+use App\Http\Controllers\MembershipController;
 use App\Http\Controllers\MembershipPlanController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
@@ -26,6 +28,13 @@ Route::middleware('auth')->group(function () {
 
   Route::resource('membership-plans', MembershipPlanController::class)
     ->except(['show']);
+  Route::resource('members', MemberController::class);
+  Route::get('/members/{member}/memberships/create', [MembershipController::class, 'create'])
+
+    ->name('members.memberships.create');
+
+  Route::post('/members/{member}/memberships', [MembershipController::class, 'store'])
+    ->name('members.memberships.store');
 });
 
 require __DIR__ . '/auth.php';

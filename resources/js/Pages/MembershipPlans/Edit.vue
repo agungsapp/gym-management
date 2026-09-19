@@ -1,6 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, useForm, Link } from '@inertiajs/vue3';
+import Swal from 'sweetalert2';
 
 const props = defineProps({
   plan: Object,
@@ -16,7 +17,17 @@ const form = useForm({
 });
 
 const submit = () => {
-  form.put(route('membership-plans.update', props.plan.id));
+  form.put(route('membership-plans.update', props.plan.id), {
+    onSuccess: () => {
+      Swal.fire({
+        title: 'Berhasil!',
+        text: 'Paket membership berhasil diperbarui.',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    },
+  });
 };
 </script>
 
