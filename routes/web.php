@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CheckInController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\MembershipController;
 use App\Http\Controllers\MembershipPlanController;
@@ -35,6 +36,12 @@ Route::middleware('auth')->group(function () {
 
   Route::post('/members/{member}/memberships', [MembershipController::class, 'store'])
     ->name('members.memberships.store');
+
+  Route::post('/members/{member}/check-in', [CheckInController::class, 'storeFromMember'])
+    ->name('members.check-in');
+
+  Route::get('/check-in', [CheckInController::class, 'index'])->name('check-in.index');
+  Route::post('/check-in', [CheckInController::class, 'store'])->name('check-in.store');
 });
 
 require __DIR__ . '/auth.php';

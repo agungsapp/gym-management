@@ -76,4 +76,9 @@ class Member extends Model
 
         return $prefix . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
     }
+
+    public function attendances()
+    {
+        return $this->hasMany(Attendance::class);
+    }
 }

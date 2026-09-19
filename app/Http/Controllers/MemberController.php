@@ -78,9 +78,16 @@ class MemberController extends Controller
         $activeMembership = $member->memberships
             ->first(fn($m) => $m->status === 'active' && $m->end_date->gte(now()->startOfDay()));
 
+        $attendances = $member->attendances()
+            ->with('operator')
+            ->latest('check_in_at')
+            ->limit(30)
+            ->get();
+
         return Inertia::render('Members/Show', [
             'member' => $member,
             'activeMembership' => $activeMembership,
+            'attendances' => $attendances,
         ]);
     }
 
